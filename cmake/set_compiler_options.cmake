@@ -91,7 +91,6 @@ function(set_compiler_options target_name)
 
     _sco_set_compiler_options("${target_name}"
         -Waggregate-return
-        -Walloc-zero
         -Walloca
         -Warray-bounds=2
         -Wattribute-alias=2
@@ -110,22 +109,19 @@ function(set_compiler_options target_name)
         -Wextra-semi
         -Wfloat-equal
         -Wformat-overflow=2
+        -Wformat-signedness
+        -Wformat-truncation=2
         -Wformat=2
         -Wframe-larger-than=1024
         -Winline
         -Winvalid-pch
         -Wlarger-than=1024
         -Wlogical-op
-        -Wmain
+        -Wmismatched-tags
         -Wmissing-declarations
-        -Wmissing-format-attribute
         -Wmissing-include-dirs
-        -Wmissing-noreturn
-        -Wmissing-profile
         -Wmultiple-inheritance
-        -Wnarrowing
         -Wnoexcept
-        -Wnormalized=nfc
         -Wnull-dereference
         -Wold-style-cast
         -Woverloaded-virtual
@@ -133,8 +129,8 @@ function(set_compiler_options target_name)
         -Wpadded
         -Wplacement-new=2
         -Wredundant-decls
+        -Wredundant-tags
         -Wshadow
-        -Wshift-overflow=2
         -Wsign-conversion
         -Wsign-promo
         -Wstack-protector
@@ -142,7 +138,8 @@ function(set_compiler_options target_name)
         -Wstrict-null-sentinel
         -Wstrict-overflow=5
         -Wstringop-overflow=4
-        -Wstringop-truncation
+        -Wsuggest-attribute=format
+        -Wsuggest-attribute=noreturn
         -Wsuggest-final-methods
         -Wsuggest-final-types
         -Wsuggest-override
@@ -151,7 +148,6 @@ function(set_compiler_options target_name)
         -Wtrampolines
         -Wundef
         -Wuninitialized
-        -Wunreachable-code
         -Wunsafe-loop-optimizations
         -Wunused-macros
         -Wuseless-cast

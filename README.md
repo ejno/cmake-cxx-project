@@ -1,3 +1,8 @@
 # cmake-cxx-project
-
 CMake project template.
+
+## Building
+```sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPROJECT_ENABLE_STRICT=FALSE
+cmake --build build --config Release
+```
