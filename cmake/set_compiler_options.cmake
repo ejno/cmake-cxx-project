@@ -5,43 +5,51 @@ include(CheckIPOSupported)
 include(GenerateExportHeader)
 
 
-function(_sco_set_strict target_name)
-    check_cxx_compiler_flag(-Werror CXX_HAS_-Werror)
+function(_sco_add_strict_warnings target_name)
+    set(flag -Werror)
 
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
-            OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang"
-            OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
-        set(CXX_HAS_-Werror 1 CACHE INTERNAL "CXX has -Werror")
+    set(CMAKE_REQUIRED_QUIET TRUE)
+    check_cxx_compiler_flag("${flag}" CXX_HAS_${flag})
+
+    if(NOT CXX_HAS_${flag})
+        # can fail because CMake triggers a warning...
+        # if we have -Weffc++, assume -Werror
+        unset(CXX_HAS_${flag})
+        unset(CXX_HAS_${flag} CACHE)
+        check_cxx_compiler_flag(-Weffc++ CXX_HAS_${flag})
     endif()
 
-    string(TOUPPER "${CMAKE_PROJECT_NAME}" upper_project_name)
-    option("${upper_project_name}_ENABLE_STRICT" "Make warnings errors" TRUE)
+    string(TOUPPER "${PROJECT_NAME}" upper_project_name)
+    option(
+        "${upper_project_name}_ENABLE_STRICT_WARNINGS"
+        "Regard warnings as errors"
+        TRUE)
 
-    if(${upper_project_name}_ENABLE_STRICT AND CXX_HAS_-Werror)
-        target_compile_options("${target_name}" PRIVATE -Werror)
+    if(${upper_project_name}_ENABLE_STRICT_WARNINGS AND CXX_HAS_${flag})
+        target_compile_options("${target_name}" PRIVATE "${flag}")
     endif()
 endfunction()
 
 
 function(_sco_set_ipo target_name)
-    string(TOUPPER "${CMAKE_PROJECT_NAME}" upper_project_name)
-    option("${upper_project_name}_ENABLE_IPO" "Enable IPO" TRUE)
     check_ipo_supported(RESULT ipo_supported LANGUAGES CXX)
+    string(TOUPPER "${PROJECT_NAME}" upper_project_name)
+    option("${upper_project_name}_ENABLE_IPO" "Enable IPO" TRUE)
 
-    if(ipo_supported AND ${upper_project_name}_ENABLE_IPO)
+    if(${upper_project_name}_ENABLE_IPO AND ipo_supported)
         set_property(TARGET "${target_name}" PROPERTY
             INTERPROCEDURAL_OPTIMIZATION TRUE)
     endif()
 endfunction()
 
 
-function(_sco_set_compiler_options target_name)
-    foreach(option IN LISTS ARGN)
-        string(REPLACE " " "_" test_name "${option}")
-        check_cxx_compiler_flag("${option}" "CXX_HAS_${test_name}")
+function(_sco_add_compile_options target_name)
+    foreach(flag IN LISTS ARGN)
+        string(REPLACE " " "_" test_name "${flag}")
+        check_cxx_compiler_flag("${flag}" "CXX_HAS_${test_name}")
 
         if(CXX_HAS_${test_name})
-            target_compile_options("${target_name}" PRIVATE "${option}")
+            target_compile_options("${target_name}" PRIVATE "${flag}")
         endif()
     endforeach()
 endfunction()
@@ -53,13 +61,13 @@ function(_sco_check_linker_flag flag out_var)
 endfunction()
 
 
-function(_sco_set_linker_options target_name scope)
-    foreach(option IN LISTS ARGN)
-        string(REPLACE " " "_" test_name "${option}")
-        _sco_check_linker_flag("${option}" "CXX_LINKER_HAS_${test_name}")
+function(_sco_add_link_options target_name scope)
+    foreach(flag IN LISTS ARGN)
+        string(REPLACE " " "_" test_name "${flag}")
+        _sco_check_linker_flag("${flag}" "CXX_LINKER_HAS_${test_name}")
 
         if(CXX_LINKER_HAS_${test_name})
-            target_link_options("${target_name}" "${scope}" "${option}")
+            target_link_options("${target_name}" "${scope}" "${flag}")
         endif()
     endforeach()
 endfunction()
@@ -71,28 +79,37 @@ function(_sco_check_compiler_and_linker_flag flag out_var)
 endfunction()
 
 
-function(_sco_set_compiler_and_linker_options target_name scope)
-    foreach(option IN LISTS ARGN)
-        string(REPLACE " " "_" test_name "${option}")
+function(
+        _sco_add_compile_and_link_options
+        target_name
+        scope_compile
+        scope_link)
+    foreach(flag IN LISTS ARGN)
+        string(REPLACE " " "_" test_name "${flag}")
         _sco_check_compiler_and_linker_flag(
-            "${option}"
+            "${flag}"
             "CXX_AND_CXX_LINKER_HAVE_${test_name}")
 
         if(CXX_AND_CXX_LINKER_HAVE_${test_name})
-            target_compile_options("${target_name}" "${scope}" "${option}")
-            target_link_options("${target_name}" "${scope}" "${option}")
+            target_compile_options(
+                "${target_name}"
+                "${scope_compile}"
+                "${flag}")
+            target_link_options("${target_name}" "${scope_link}" "${flag}")
         endif()
     endforeach()
 endfunction()
 
 
-function(_sco_set_sanitize target_name)
-    string(TOUPPER "${CMAKE_PROJECT_NAME}" upper_project_name)
+function(_sco_add_sanitize target_name)
+    string(TOUPPER "${PROJECT_NAME}" upper_project_name)
     option("${upper_project_name}_ENABLE_SANITIZE" "Enable sanitize" FALSE)
 
     if(${upper_project_name}_ENABLE_SANITIZE)
-        _sco_set_compiler_and_linker_options("${target_name}" PUBLIC
-            -fno-sanitize-recover=all
+        target_compile_definitions("${target_name}" PRIVATE _FORTIFY_SOURCE=0)
+
+        _sco_add_compile_options("${target_name}" -fno-sanitize-recover=all)
+        _sco_add_compile_and_link_options("${target_name}" PRIVATE PUBLIC
             -fsanitize=address
             -fsanitize=float-cast-overflow
             -fsanitize=float-divide-by-zero
@@ -101,8 +118,42 @@ function(_sco_set_sanitize target_name)
         get_target_property(target_type "${target_name}" TYPE)
 
         if (target_type STREQUAL "SHARED_LIBRARY")
-            _sco_set_linker_options("${target_name}" PUBLIC -shared-libsan)
+            _sco_add_link_options("${target_name}" PUBLIC -shared-libsan)
         endif()
+    else()
+        target_compile_definitions("${target_name}" PRIVATE
+            $<$<NOT:$<CONFIG:Debug>>:_FORTIFY_SOURCE=2>)
+    endif()
+endfunction()
+
+
+function(_sco_add_libcpp_debug target_name)
+    set(definition _LIBCPP_DEBUG=1)
+
+    set(CMAKE_REQUIRED_DEFINITIONS "-D${definition}")
+    check_cxx_source_compiles("
+        #include <string>
+        #include <vector>
+        int main(int argc, char **) {
+            std::vector<std::string> v(argc);
+            return v.size() != 1;
+        }"
+        CXX_LIBRARY_HAS_${definition})
+
+    if(CXX_LIBRARY_HAS_${definition})
+        target_compile_definitions("${target_name}" PUBLIC
+            $<$<CONFIG:Debug>:${definition}>)
+    endif()
+endfunction()
+
+
+function(_sco_set_link_what_you_use target_name)
+    _sco_check_linker_flag(
+        -Wl,--no-as-needed
+        CXX_LINKER_HAS_LINK_WHAT_YOU_USE)
+
+    if(CXX_LINKER_HAS_LINK_WHAT_YOU_USE)
+        set_property(TARGET "${target_name}" PROPERTY LINK_WHAT_YOU_USE TRUE)
     endif()
 endfunction()
 
@@ -117,13 +168,30 @@ function(set_compiler_options target_name)
         POSITION_INDEPENDENT_CODE TRUE
         PREFIX "")
 
-    if(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-        set_property(TARGET "${target_name}" PROPERTY LINK_WHAT_YOU_USE TRUE)
+    _sco_add_libcpp_debug("${target_name}")
+    _sco_add_sanitize("${target_name}")
+    _sco_add_strict_warnings("${target_name}")
+    _sco_set_ipo("${target_name}")
+    _sco_set_link_what_you_use("${target_name}")
+
+    target_compile_definitions("${target_name}" PRIVATE
+        _GLIBCXX_ASSERTIONS
+        $<$<CONFIG:Debug>:_GLIBCXX_DEBUG_PEDANTIC>)
+
+    target_compile_definitions("${target_name}" PUBLIC
+        $<$<CONFIG:Debug>:_GLIBCXX_DEBUG>)
+
+    get_target_property(target_type "${target_name}" TYPE)
+
+    if(NOT target_type STREQUAL "EXECUTABLE")
+        generate_export_header("${target_name}")
+        target_include_directories("${target_name}" PUBLIC
+            "${CMAKE_CURRENT_BINARY_DIR}")
     endif()
 
-    _sco_set_compiler_options("${target_name}" -Wfatal-errors)
+    _sco_add_compile_options("${target_name}" -Wfatal-errors)
 
-    _sco_set_compiler_options("${target_name}"
+    _sco_add_compile_options("${target_name}"
         -Wall
         -Weffc++
         -Weverything
@@ -131,9 +199,7 @@ function(set_compiler_options target_name)
         -Wpedantic
         /permissive-)
 
-    _sco_set_compiler_options("${target_name}"
-        -Wabi-tag
-        -Waggregate-return
+    _sco_add_compile_options("${target_name}"
         -Waligned-new=all
         -Walloca
         -Warray-bounds=2
@@ -204,9 +270,9 @@ function(set_compiler_options target_name)
         -Wvolatile
         -Wzero-as-null-pointer-constant)
 
-    _sco_set_compiler_options("${target_name}" -Wno-c++98-compat)
+    _sco_add_compile_options("${target_name}" -Wno-c++98-compat)
 
-    _sco_set_compiler_options("${target_name}"
+    _sco_add_compile_options("${target_name}"
         --param=ssp-buffer-size=4
         -fasynchronous-unwind-tables
         -fcf-protection=full
@@ -219,35 +285,10 @@ function(set_compiler_options target_name)
         -mshstk
         -pipe)
 
-    _sco_set_linker_options("${target_name}" PRIVATE
+    _sco_add_link_options("${target_name}" PRIVATE
         -Wl,--sort-common
         -Wl,-z,defs
         -Wl,-z,noexecstack
         -Wl,-z,now
         -Wl,-z,relro)
-
-    _sco_set_ipo("${target_name}")
-    _sco_set_sanitize("${target_name}")
-    _sco_set_strict("${target_name}")
-
-    target_compile_definitions("${target_name}" PRIVATE
-        _GLIBCXX_ASSERTIONS
-        $<$<NOT:$<CONFIG:Debug>>:_FORTIFY_SOURCE=2>
-        $<$<CONFIG:Debug>:_GLIBCXX_DEBUG_PEDANTIC>)
-
-    target_compile_definitions("${target_name}" PUBLIC
-        $<$<CONFIG:Debug>:_GLIBCXX_DEBUG>)
-
-    if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
-        target_compile_definitions("${target_name}" PUBLIC
-            $<$<CONFIG:Debug>:_LIBCPP_DEBUG=1>)
-    endif()
-
-    get_target_property(target_type "${target_name}" TYPE)
-
-    if(NOT target_type STREQUAL "EXECUTABLE")
-        generate_export_header("${target_name}")
-        target_include_directories("${target_name}" PUBLIC
-            "${CMAKE_CURRENT_BINARY_DIR}")
-    endif()
 endfunction()
