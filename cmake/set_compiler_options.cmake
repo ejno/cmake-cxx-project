@@ -48,20 +48,62 @@ endfunction()
 
 
 function(_sco_check_linker_flag flag out_var)
-    list(APPEND CMAKE_EXE_LINKER_FLAGS "${flag}")
+    set(CMAKE_REQUIRED_LINK_OPTIONS "${flag}")
     check_cxx_compiler_flag("" "${out_var}")
 endfunction()
 
 
-function(_sco_set_linker_options target_name)
+function(_sco_set_linker_options target_name scope)
     foreach(option IN LISTS ARGN)
         string(REPLACE " " "_" test_name "${option}")
-        _sco_check_linker_flag("${option}" "LINKER_HAS_${test_name}")
+        _sco_check_linker_flag("${option}" "CXX_LINKER_HAS_${test_name}")
 
-        if(LINKER_HAS_${test_name})
-            target_link_options("${target_name}" PRIVATE "${option}")
+        if(CXX_LINKER_HAS_${test_name})
+            target_link_options("${target_name}" "${scope}" "${option}")
         endif()
     endforeach()
+endfunction()
+
+
+function(_sco_check_compiler_and_linker_flag flag out_var)
+    set(CMAKE_REQUIRED_LINK_OPTIONS "${flag}")
+    check_cxx_compiler_flag("${flag}" "${out_var}")
+endfunction()
+
+
+function(_sco_set_compiler_and_linker_options target_name scope)
+    foreach(option IN LISTS ARGN)
+        string(REPLACE " " "_" test_name "${option}")
+        _sco_check_compiler_and_linker_flag(
+            "${option}"
+            "CXX_AND_CXX_LINKER_HAVE_${test_name}")
+
+        if(CXX_AND_CXX_LINKER_HAVE_${test_name})
+            target_compile_options("${target_name}" "${scope}" "${option}")
+            target_link_options("${target_name}" "${scope}" "${option}")
+        endif()
+    endforeach()
+endfunction()
+
+
+function(_sco_set_sanitize target_name)
+    string(TOUPPER "${CMAKE_PROJECT_NAME}" upper_project_name)
+    option("${upper_project_name}_ENABLE_SANITIZE" "Enable sanitize" FALSE)
+
+    if(${upper_project_name}_ENABLE_SANITIZE)
+        _sco_set_compiler_and_linker_options("${target_name}" PUBLIC
+            -fno-sanitize-recover=all
+            -fsanitize=address
+            -fsanitize=float-cast-overflow
+            -fsanitize=float-divide-by-zero
+            -fsanitize=undefined)
+
+        get_target_property(target_type "${target_name}" TYPE)
+
+        if (target_type STREQUAL "SHARED_LIBRARY")
+            _sco_set_linker_options("${target_name}" PUBLIC -shared-libsan)
+        endif()
+    endif()
 endfunction()
 
 
@@ -170,7 +212,7 @@ function(set_compiler_options target_name)
         -mshstk
         -pipe)
 
-    _sco_set_linker_options("${target_name}"
+    _sco_set_linker_options("${target_name}" PRIVATE
         -Wl,--sort-common
         -Wl,-z,defs
         -Wl,-z,noexecstack
@@ -178,6 +220,7 @@ function(set_compiler_options target_name)
         -Wl,-z,relro)
 
     _sco_set_strict("${target_name}")
+    _sco_set_sanitize("${target_name}")
     _sco_set_ipo("${target_name}")
 
     target_compile_definitions("${target_name}" PRIVATE

@@ -6,4 +6,8 @@ Checks: '*,
         -llvmlibc-*,
         -modernize-use-trailing-return-type'
 
+CheckOptions:
+    - key: modernize-use-auto.MinTypeNameLength
+      value: '0'
+
 WarningsAsErrors: '*'

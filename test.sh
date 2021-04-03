@@ -20,6 +20,7 @@ if ! test -e "${build_path}"; then
         -S "${source_path}" \
         -B "${build_path}" \
         "-D${upper_project_name}_ENABLE_IPO=FALSE" \
+        "-D${upper_project_name}_ENABLE_SANITIZE=TRUE" \
         "-DCMAKE_BUILD_TYPE=${config}" \
         "-DCMAKE_CXX_COMPILER=g++" \
         "-DCMAKE_INSTALL_PREFIX=${install_path}" \
