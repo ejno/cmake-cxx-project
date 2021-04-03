@@ -132,13 +132,16 @@ function(set_compiler_options target_name)
         /permissive-)
 
     _sco_set_compiler_options("${target_name}"
+        -Wabi-tag
         -Waggregate-return
+        -Waligned-new=all
         -Walloca
         -Warray-bounds=2
         -Wattribute-alias=2
         -Wcast-align=strict
         -Wcast-qual
         -Wcatch-value=3
+        -Wcomma-subscript
         -Wconditionally-supported
         -Wconversion
         -Wctor-dtor-privacy
@@ -150,16 +153,18 @@ function(set_compiler_options target_name)
         -Wduplicated-cond
         -Wextra-semi
         -Wfloat-equal
+        -Wformat=2
         -Wformat-overflow=2
         -Wformat-signedness
         -Wformat-truncation=2
-        -Wformat=2
         -Wframe-larger-than=1024
+        -Wimplicit-fallthrough=5
         -Winline
         -Winvalid-pch
         -Wlarger-than=1024
         -Wlogical-op
         -Wmismatched-tags
+        -Wmissing-braces
         -Wmissing-declarations
         -Wmissing-include-dirs
         -Wmultiple-inheritance
@@ -172,7 +177,9 @@ function(set_compiler_options target_name)
         -Wplacement-new=2
         -Wredundant-decls
         -Wredundant-tags
+        -Wregister
         -Wshadow
+        -Wshift-overflow=2
         -Wsign-conversion
         -Wsign-promo
         -Wstack-protector
@@ -190,11 +197,11 @@ function(set_compiler_options target_name)
         -Wtrampolines
         -Wundef
         -Wuninitialized
-        -Wunsafe-loop-optimizations
         -Wunused-macros
         -Wuseless-cast
         -Wvector-operation-performance
         -Wvirtual-inheritance
+        -Wvolatile
         -Wzero-as-null-pointer-constant)
 
     _sco_set_compiler_options("${target_name}" -Wno-c++98-compat)
@@ -219,9 +226,9 @@ function(set_compiler_options target_name)
         -Wl,-z,now
         -Wl,-z,relro)
 
-    _sco_set_strict("${target_name}")
-    _sco_set_sanitize("${target_name}")
     _sco_set_ipo("${target_name}")
+    _sco_set_sanitize("${target_name}")
+    _sco_set_strict("${target_name}")
 
     target_compile_definitions("${target_name}" PRIVATE
         _GLIBCXX_ASSERTIONS

@@ -21,6 +21,7 @@ if ! test -e "${build_path}"; then
         -B "${build_path}" \
         "-D${upper_project_name}_ENABLE_IPO=FALSE" \
         "-D${upper_project_name}_ENABLE_SANITIZE=TRUE" \
+        "-D${upper_project_name}_ENABLE_STRICT=TRUE" \
         "-DCMAKE_BUILD_TYPE=${config}" \
         "-DCMAKE_CXX_COMPILER=g++" \
         "-DCMAKE_INSTALL_PREFIX=${install_path}" \
