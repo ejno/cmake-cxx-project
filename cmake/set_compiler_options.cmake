@@ -3,6 +3,7 @@ include_guard(GLOBAL)
 
 include(CheckIPOSupported)
 include(GenerateExportHeader)
+include(InstallRequiredSystemLibraries)
 
 
 function(_sco_add_strict_warnings target_name)
@@ -37,8 +38,9 @@ function(_sco_set_ipo target_name)
     option("${upper_project_name}_ENABLE_IPO" "Enable IPO" TRUE)
 
     if(${upper_project_name}_ENABLE_IPO AND ipo_supported)
-        set_property(TARGET "${target_name}" PROPERTY
-            INTERPROCEDURAL_OPTIMIZATION TRUE)
+        set_property(
+            TARGET "${target_name}"
+            PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
     endif()
 endfunction()
 
@@ -201,6 +203,7 @@ function(set_compiler_options target_name)
 
     _sco_add_compile_options("${target_name}"
         -Waligned-new=all
+        -Walloc-zero
         -Walloca
         -Warray-bounds=2
         -Wattribute-alias=2
@@ -210,19 +213,23 @@ function(set_compiler_options target_name)
         -Wcomma-subscript
         -Wconditionally-supported
         -Wconversion
+        -Wctad-maybe-unsupported
         -Wctor-dtor-privacy
         -Wdate-time
         -Wdeprecated-copy-dtor
+        -Wdeprecated-enum-enum-conversion
+        -Wdeprecated-enum-float-conversion
         -Wdisabled-optimization
         -Wdouble-promotion
         -Wduplicated-branches
         -Wduplicated-cond
+        -Wenum-conversion
         -Wextra-semi
         -Wfloat-equal
-        -Wformat=2
         -Wformat-overflow=2
         -Wformat-signedness
         -Wformat-truncation=2
+        -Wformat=2
         -Wframe-larger-than=1024
         -Wimplicit-fallthrough=5
         -Winline
@@ -233,6 +240,7 @@ function(set_compiler_options target_name)
         -Wmissing-braces
         -Wmissing-declarations
         -Wmissing-include-dirs
+        -Wmultichar
         -Wmultiple-inheritance
         -Wnoexcept
         -Wnull-dereference
