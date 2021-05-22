@@ -10,14 +10,14 @@ function(_sco_add_strict_warnings target_name)
     set(flag -Werror)
 
     set(CMAKE_REQUIRED_QUIET TRUE)
-    check_cxx_compiler_flag("${flag}" CXX_HAS_${flag})
+    check_cxx_compiler_flag("${flag}" "CXX_HAS_${flag}")
 
     if(NOT CXX_HAS_${flag})
         # can fail because CMake triggers a warning...
         # if we have -Weffc++, assume -Werror
-        unset(CXX_HAS_${flag})
-        unset(CXX_HAS_${flag} CACHE)
-        check_cxx_compiler_flag(-Weffc++ CXX_HAS_${flag})
+        unset("CXX_HAS_${flag}")
+        unset("CXX_HAS_${flag}" CACHE)
+        check_cxx_compiler_flag(-Weffc++ "CXX_HAS_${flag}")
     endif()
 
     string(TOUPPER "${PROJECT_NAME}" upper_project_name)
@@ -223,7 +223,6 @@ function(set_compiler_options target_name)
         -Wdouble-promotion
         -Wduplicated-branches
         -Wduplicated-cond
-        -Wenum-conversion
         -Wextra-semi
         -Wfloat-equal
         -Wformat-overflow=2
